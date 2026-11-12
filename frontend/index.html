@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Distribuido</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Pantalla de ingreso -->
+  <section id="login" class="login">
+    <form id="login-form" class="login-card">
+      <h1>Chat Distribuido</h1>
+      <p class="muted">Sistemas Distribuidos · clúster de 3 nodos con elección de líder</p>
+      <label for="username">Tu nombre</label>
+      <input id="username" maxlength="24" autocomplete="off" placeholder="ej. ana" required autofocus>
+      <button type="submit">Entrar</button>
+    </form>
+  </section>
+
+  <!-- Aplicación -->
+  <main id="app" class="app" hidden>
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <strong>Salas</strong>
+        <span id="me" class="muted"></span>
+      </header>
+      <ul id="rooms" class="rooms"></ul>
+      <form id="room-form" class="room-form">
+        <input id="room-name" maxlength="32" placeholder="Nueva sala" autocomplete="off" required>
+        <button type="submit" title="Crear sala">+</button>
+      </form>
+    </aside>
+
+    <section class="chat">
+      <header class="chat-header">
+        <div>
+          <h2 id="room-title"># general</h2>
+          <span id="room-users" class="muted"></span>
+        </div>
+        <span id="conn" class="conn conn-connecting">Conectando…</span>
+      </header>
+      <ol id="messages" class="messages" aria-live="polite"></ol>
+      <form id="msg-form" class="msg-form">
+        <input id="msg-text" maxlength="1000" placeholder="Escribí un mensaje…" autocomplete="off" required>
+        <button type="submit">Enviar</button>
+      </form>
+    </section>
+
+    <aside class="cluster">
+      <header><strong>Estado del clúster</strong></header>
+      <ul id="nodes" class="nodes"></ul>
+      <p class="muted small">
+        Apagá el nodo líder (<code>docker compose stop node3</code>) y mirá cómo
+        se elige uno nuevo y el chat se reconecta solo.
+      </p>
+    </aside>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

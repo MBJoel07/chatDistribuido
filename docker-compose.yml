@@ -1,0 +1,40 @@
+# Clúster de 3 nodos + frontend.
+#   docker compose up --build
+#   Frontend:  http://localhost:8080
+#   Nodos:     http://localhost:8001/status, :8002, :8003
+# Prueba de fallo: docker compose stop node3   (y luego: docker compose start node3)
+
+x-node: &node
+  build: ./backend
+  restart: "no"
+
+services:
+  node1:
+    <<: *node
+    environment:
+      NODE_ID: "1"
+      PEERS: "2=http://node2:8000,3=http://node3:8000"
+      PUBLIC_WS_URL: "ws://localhost:8001/ws"
+    ports: ["8001:8000"]
+
+  node2:
+    <<: *node
+    environment:
+      NODE_ID: "2"
+      PEERS: "1=http://node1:8000,3=http://node3:8000"
+      PUBLIC_WS_URL: "ws://localhost:8002/ws"
+    ports: ["8002:8000"]
+
+  node3:
+    <<: *node
+    environment:
+      NODE_ID: "3"
+      PEERS: "1=http://node1:8000,2=http://node2:8000"
+      PUBLIC_WS_URL: "ws://localhost:8003/ws"
+    ports: ["8003:8000"]
+
+  frontend:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    ports: ["8080:80"]
