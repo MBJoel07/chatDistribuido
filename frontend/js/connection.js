@@ -5,6 +5,16 @@
 // - Si la conexión se cae (p. ej. murió el líder), reintenta con backoff
 //   creciente hasta que haya un nuevo líder elegido.
 
+import { HOST } from "./config.js";
+
+// Los nodos anuncian su dirección como "localhost" por defecto. Desde otra
+// computadora eso no sirve, así que se reemplaza por el host de la página.
+function reachable(url) {
+  const u = new URL(url);
+  if (u.hostname === "localhost" || u.hostname === "127.0.0.1") u.hostname = HOST;
+  return u.toString();
+}
+
 export class ChatConnection {
   constructor(servers, { onMessage, onState }) {
     this.servers = servers;
@@ -43,7 +53,7 @@ export class ChatConnection {
       const msg = JSON.parse(ev.data);
       if (msg.type === "redirect") {
         this._abandon(ws);
-        this._open(msg.leader_url);
+        this._open(reachable(msg.leader_url));
         return;
       }
       if (msg.type === "unavailable") {

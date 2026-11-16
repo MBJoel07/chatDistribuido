@@ -149,6 +149,28 @@ Entrá a http://localhost:8080
 El estado de cada nodo también se puede ver en http://localhost:8001/status,
 http://localhost:8002/status y http://localhost:8003/status.
 
+### 5. Conectarse desde otra computadora (misma red)
+
+Los demás no necesitan instalar nada, sólo un navegador.
+
+1. En la compu que corre los nodos, buscá su IP con `ipconfig` (Windows) o
+   `ip addr` (Linux): la "Dirección IPv4", por ejemplo `192.168.0.15`.
+2. Permití las conexiones entrantes en el firewall. En Windows, abrí PowerShell
+   **como administrador** y ejecutá:
+
+   ```powershell
+   New-NetFirewallRule -DisplayName "Chat distribuido" -Direction Inbound -Protocol TCP -LocalPort 8080,8001-8003 -Action Allow
+   ```
+
+3. Desde la otra compu, abrí `http://192.168.0.15:8080` (con tu IP).
+
+El frontend usa automáticamente la IP desde la que se abrió la página para
+conectarse a los nodos, así que no hay que cambiar ninguna configuración.
+
+> Si no conecta: las dos compus tienen que estar en la misma red, y algunas redes
+> (de facultad, de bares) bloquean la comunicación entre dispositivos. En ese caso,
+> probá con la zona Wi-Fi del celular.
+
 ## Cómo probarlo
 
 ### Prueba manual (la de la demo)
