@@ -5,6 +5,21 @@ clúster de 3 nodos. Si el nodo líder se cae, los demás lo detectan, eligen un
 líder con el **algoritmo Bully** y los clientes se reconectan solos, sin perder el
 historial gracias a la **replicación** del estado.
 
+## Tecnologías
+
+| Parte | Tecnología |
+|---|---|
+| Backend | **Python 3.10+** con `aiohttp` (única dependencia) y `asyncio` |
+| Frontend | **HTML + CSS + JavaScript** puro (sin React, sin build) |
+| Despliegue | Docker Compose (opcional) |
+| Pruebas | `pytest` + script de pruebas de integración |
+
+> **No usa Node.js ni `npm`.** No hay `npm install` ni `npm run dev`.
+>
+> **No tiene base de datos.** Los mensajes se guardan en memoria y se replican en
+> los 3 nodos: si se cae uno, los datos siguen en los otros dos. Sólo se pierden
+> si se apagan los 3 a la vez.
+
 ## Arquitectura
 
 ```
@@ -45,7 +60,7 @@ historial gracias a la **replicación** del estado.
 chatDistribuido/
 ├── README.md
 ├── docker-compose.yml        # 3 nodos + frontend
-├── backend/                  # Servidor (Python 3.11+, aiohttp)
+├── backend/                  # Servidor (Python, aiohttp)
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── requirements-dev.txt
@@ -68,63 +83,124 @@ chatDistribuido/
 │       ├── connection.js     # Conexión con redirección y reconexión
 │       └── app.js            # Interfaz y panel de estado del clúster
 ├── scripts/
-│   ├── run_local.sh          # Levanta todo sin Docker
+│   ├── run_local.sh          # Levanta todo sin Docker (Linux/Mac/Git Bash)
 │   └── pruebas.py            # Casos de prueba: normal, carga, fallo
 └── docs/                     # Informe y diagramas
 ```
 
-## Cómo ejecutarlo
+## Cómo levantarlo
 
-### Con Docker (recomendado)
+### 1. Requisitos
+
+Python 3.10 o superior. Para verificarlo:
+
+```bash
+python --version
+```
+
+### 2. Instalar la dependencia (una sola vez)
+
+Desde la carpeta del repositorio:
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+### 3. Levantar los 3 nodos y el frontend
+
+**Opción A — Linux, Mac o Git Bash** (un solo comando, Ctrl+C detiene todo):
+
+```bash
+./scripts/run_local.sh
+```
+
+**Opción B — Windows con PowerShell** (4 terminales).
+
+En las tres primeras, entrá a la carpeta `backend` y corré un nodo en cada una:
+
+```powershell
+$env:NODE_ID=1; $env:PORT=8001; $env:PEERS="2=http://localhost:8002,3=http://localhost:8003"; python main.py
+```
+
+```powershell
+$env:NODE_ID=2; $env:PORT=8002; $env:PEERS="1=http://localhost:8001,3=http://localhost:8003"; python main.py
+```
+
+```powershell
+$env:NODE_ID=3; $env:PORT=8003; $env:PEERS="1=http://localhost:8001,2=http://localhost:8002"; python main.py
+```
+
+En la cuarta, entrá a la carpeta `frontend`:
+
+```powershell
+python -m http.server 8080
+```
+
+**Opción C — Docker** (si lo tenés instalado):
 
 ```bash
 docker compose up --build
 ```
 
-Abrí http://localhost:8080 en dos pestañas con nombres distintos.
+### 4. Abrir el chat
 
-### Sin Docker
+Entrá a http://localhost:8080
+
+El estado de cada nodo también se puede ver en http://localhost:8001/status,
+http://localhost:8002/status y http://localhost:8003/status.
+
+## Cómo probarlo
+
+### Prueba manual (la de la demo)
+
+1. Abrí dos pestañas (una normal y otra en incógnito) y entrá con nombres
+   distintos, por ejemplo "ana" y "beto".
+2. Creá una sala y escribí desde las dos: los mensajes aparecen en ambas.
+3. En el panel derecho, el **nodo 3** figura como **Líder**.
+4. Apagá el nodo 3: **Ctrl+C** en su terminal (o `docker compose stop node3`).
+5. En unos 3 segundos el panel muestra al nodo 3 como **Caído** y al **nodo 2**
+   como **Líder**. El chat avisa "Reconectado al nuevo líder: nodo 2".
+6. Seguí escribiendo: el chat funciona y los mensajes anteriores siguen ahí.
+7. Volvé a levantar el nodo 3 (mismo comando, o `docker compose start node3`):
+   se sincroniza y recupera el liderazgo, como indica Bully.
+
+### Pruebas automáticas
+
+Con el clúster levantado, desde la carpeta del repositorio:
 
 ```bash
-pip install -r backend/requirements.txt
-./scripts/run_local.sh
+python scripts/pruebas.py normal
 ```
-
-En Windows sin Bash, abrí 3 terminales dentro de `backend/` (PowerShell):
-
-```powershell
-$env:NODE_ID=1; $env:PORT=8001; $env:PEERS="2=http://localhost:8002,3=http://localhost:8003"; python main.py
-$env:NODE_ID=2; $env:PORT=8002; $env:PEERS="1=http://localhost:8001,3=http://localhost:8003"; python main.py
-$env:NODE_ID=3; $env:PORT=8003; $env:PEERS="1=http://localhost:8001,2=http://localhost:8002"; python main.py
-```
-
-y en otra, dentro de `frontend/`: `python -m http.server 8080`.
-
-## Pruebas
 
 ```bash
-# Tests unitarios
-cd backend && python -m pytest
-
-# Con el clúster levantado:
-python scripts/pruebas.py normal                       # 1. Flujo normal
-python scripts/pruebas.py carga --clientes 20 --mensajes 10   # 2. Concurrencia
-python scripts/pruebas.py fallo                        # 3. Caída del líder (usa docker compose stop)
+python scripts/pruebas.py carga --clientes 20 --mensajes 10
 ```
-
-Sin Docker, usá el modo manual: el script te dice qué nodo es el líder, lo apagás
-con Ctrl+C en su terminal y presionás Enter.
 
 ```bash
 python scripts/pruebas.py fallo --kill-cmd manual
 ```
 
-### Demo de tolerancia a fallos
+| Prueba | Qué verifica |
+|---|---|
+| `normal` | Dos clientes en una sala se ven entre sí y los 3 nodos quedan con el mismo estado |
+| `carga` | Muchos clientes escribiendo a la vez: todos los mensajes llegan, en orden y sin duplicados |
+| `fallo` | Al caer el líder se elige uno nuevo, el cliente se reconecta y el historial se conserva |
 
-1. Abrí el frontend y mandá algunos mensajes; el panel derecho muestra al nodo 3 como líder.
-2. `docker compose stop node3`
-3. En ~3 s el nodo 2 pasa a líder, el chat se reconecta solo y el historial sigue ahí.
-4. `docker compose start node3`: el nodo 3 se sincroniza y recupera el liderazgo (Bully).
+En la prueba de fallo con `--kill-cmd manual`, el script te dice qué nodo es el
+líder, lo apagás con Ctrl+C y presionás Enter. Con Docker podés omitir esa opción:
+el script lo apaga solo con `docker compose stop`.
+
+### Tests unitarios
+
+Desde la carpeta `backend`:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+```bash
+python -m pytest
+```
 
 ## Protocolo cliente ↔ servidor (WebSocket, JSON)
 
