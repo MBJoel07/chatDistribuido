@@ -112,8 +112,12 @@ python scripts/pruebas.py carga --clientes 20 --mensajes 10   # 2. Concurrencia
 python scripts/pruebas.py fallo                        # 3. Caída del líder (usa docker compose stop)
 ```
 
-Sin Docker, la prueba de fallo necesita saber cómo apagar el nodo, por ejemplo:
-`python scripts/pruebas.py fallo --kill-cmd "pkill -f 'NODE_ID={id}'"` o apagarlo a mano.
+Sin Docker, usá el modo manual: el script te dice qué nodo es el líder, lo apagás
+con Ctrl+C en su terminal y presionás Enter.
+
+```bash
+python scripts/pruebas.py fallo --kill-cmd manual
+```
 
 ### Demo de tolerancia a fallos
 

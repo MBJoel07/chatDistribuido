@@ -7,6 +7,7 @@
 Requiere el clúster levantado (docker compose up, o scripts/run_local.sh).
 Para la prueba de fallo, --kill-cmd indica cómo apagar un nodo; {id} se
 reemplaza por el ID del líder. Por defecto: "docker compose stop node{id}".
+Con --kill-cmd manual, el script espera a que lo apagues vos (Ctrl+C).
 """
 import argparse
 import asyncio
@@ -164,9 +165,13 @@ async def prueba_fallo(session: aiohttp.ClientSession, kill_cmd: str) -> None:
         await ana.decir(sala, f"antes-{i}")
     ok(f"3 mensajes enviados al líder (nodo {lider})")
 
-    cmd = kill_cmd.format(id=lider)
-    print(f"  Apagando el líder: {cmd}")
-    subprocess.run(cmd, shell=True, check=True)
+    if kill_cmd == "manual":
+        await asyncio.to_thread(
+            input, f"  >> Apagá el nodo {lider} (Ctrl+C en su terminal) y presioná Enter acá... ")
+    else:
+        cmd = kill_cmd.format(id=lider)
+        print(f"  Apagando el líder: {cmd}")
+        subprocess.run(cmd, shell=True, check=True)
     t0 = time.perf_counter()
 
     nuevo = await ana.conectar(intentos=30)
